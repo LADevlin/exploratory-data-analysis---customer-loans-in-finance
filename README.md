@@ -25,9 +25,105 @@ This project is a practice study on a real world example:
 
 ## Findings
 
+### Null Values
 
+First we must decide what to do with null values, the first thing is to create a null matrix and see if there is any pattern to null values
 
+![Null Matrix](null_values.png)
 
+As can be seen, there are four columns with significant null values that must be dropped before proceeding.
+
+Once these have dropped remaining columns with null values must be imputed, I did this using median imputing for numerical data and mode imputing for categorical data.
+
+### Correcting Skew
+
+THe next step is to correct skew, some values had high skew which will effect analysis and so must be corrected.
+
+We can plot the distribution for each column and this can help demonstrate the skew
+
+![Distribution before Skew Correction](skewed_distributions.png)
+
+After applying a log transform on heavily skewed columns we have the below
+
+![Distribution_after_Skew_Correction](reduce_skew_distributions.png)
+
+The skewness has now reduced
+
+### Remove Outliers
+
+Now we must remove outliers to help better represent our data, this can be easily visualised from a box-plot which will indicate any possible outliers
+
+![Box_Plot_of_all_columns](box_plot.png)
+
+We can use this to remove outliers above a certain value, however, as can be seen some columns have a large number of possible outliers, so we must look deeper into this.
+
+I looked at the seperate distribution graphs and manually decided whether these outliers were credible
+
+![loan_amount_distribution](loan_amount_dist.png)
+
+### Overly Correlated Columns
+
+Now we must remove any columns that are highly correlated, this can be done by analysing a correlation matrix
+
+![Original_correlation_matrix](correlation_matrix.png)
+
+Any columns with high correlation must be removed via choosing a threshold, the below is the final correlation matrix
+
+![Dropped_correlation_matrix](correlation_matrix_dropped.png)
+
+### Current State of Loans
+
+Analysis on the current state of loans, this will show how much has be returned
+
+Total Loan Amount: £723066050.0
+Total Investor Funded Amount: £702433696.79
+Total Payments Made: £655067555.06
+Recovered Against Loan Amount 90.6%
+Recovered Against Investor Funded 93.26%
+
+We can also predict the state over the next 6 months time
+
+![6_month_prediction](6months_prediction.png)
+
+Return Percentage at 6 months from Loan Amount: 98.0%
+Return Percentage at 6 months from Invested Amount: 100.88%
+
+### Calculating Loss
+
+Analysis on the current state of charged off Loans
+
+Number of Charged Off Loans: 5571
+Percentage that is Charged Off Loans: 10.27%
+Total Payment of Charged Off Loans: £37400589.04
+
+### Calculating Projected Loss
+
+Analysis on loss from all chraged off loans
+
+Total Revenue Lost £93561683.7
+Pecentage of Revenue Lost: 8.4%
+
+### Possible Loss
+
+Analysis on total possible loss from late loans, defaults and charge off
+
+Total Number of Late Status: 686
+Percentage of Members in Late Status: 1.26%
+Total Lost if Late Loans Charged Off: £11179405.64
+Total Lost for Late, Default and Charged Off: £105609743.16
+Percentage Lost of Total Revenue: 9.48%
+
+### Loss Indicators
+
+We can find if there's a correlation between certain columns and loan_status
+
+Below is the correlation matrix
+
+![Correlation_Matrix](loss_indicator_correlation.png)
+
+There is a strong negative correlation between grade and interest rate so these must be linked. However these two columns have a high correlation. Grade is likely a good factor in loan status.
+
+Theres also correlation with verification status, dti, delinq_2yrs, inq_last_6mths
 
 ---
 
