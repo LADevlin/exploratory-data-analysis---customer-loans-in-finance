@@ -521,7 +521,7 @@ def transform_dataframe(df):
     # Columns that have high correlation with another column, to be dropped
     high_corr_columns = ['id', 'member_id', 'funded_amount', 'funded_amount_inv', 'instalment', 'total_accounts', 'total_rec_prncp', 'out_prncp_inv', 'total_payment_inv', 'total_rec_int', 'collection_recovery_fee']
 
-    tf_df = DataFrameTransform(df)
+    tf_df = DataFrameTransform(df.copy()) #Transforms on Copied dataframe to not lose original data
 
     # Apply transformations
     tf_df.drop_cols(drop_columns)
@@ -533,19 +533,198 @@ def transform_dataframe(df):
 
     return tf_df
 
+def current_state(df):
+    '''
+    This function prints an analysis of the current state of loans
+
+    Args:
+        df (dataframe): Dataframe to analyse
+    
+    Outputs:
+        Total Loan Amount: Total Amount of Loans Provided
+        Total Investor Funded Amount: Total Amount Funded by Investors
+        Total Payments Made: Total Payments Received, Total Revenue
+        Recovered Against Loan Amount: Percentage of Total Revenue against Total Loans Provided
+        Recovered Against Investor Funded: Percentage of Total Revenue against Total Investor Funded Amount
+    '''
+    state_df = df[['loan_amount', 'funded_amount_inv', 'total_payment']].copy() # Creates copy of dataframe with needed columns
+    #Create New columns with percent recovered for each member
+    state_df['recovered_against_loan_(%)'] = df['total_payment']/df['loan_amount']
+    state_df['recovered_against_inv_(%)'] = df['total_payment']/df['funded_amount_inv']
+    #print outputs
+    print(state_df)
+    total_loan = round(df['loan_amount'].sum(), 2)
+    total_inv = round(df['funded_amount_inv'].sum(), 2)
+    total_payment = round(df['total_payment'].sum(), 2)
+    print(f'Total Loan Amount: £{total_loan}')
+    print(f'Total Investor Funded Amount: £{total_inv}')
+    print(f'Total Payments Made: £{total_payment}')
+    print(f'Recovered Against Loan Amount {round((total_payment/total_loan) * 100, 2)}%')
+    print(f'Recovered Against Investor Funded {round((total_payment/total_inv) * 100, 2)}%')
+
+def sixmnths_state(df):
+    '''
+    This function prints a predicted analysis for 6 months in the future
+
+    Args: 
+        df (dataframe): dataframe to be analysed
+    
+    Outputs:
+        Scatter Plot: A Scatter Plot showing the predicted return percentage for each month up to 6 months into the future
+        Return Percentage at 6 Months from Loan Amount: Percent 6 months into the future of percentage of total revenue against total loans
+        Return Percentage at 6 Months from Invested Amount: Percent 6 months into the future of percentage of total revenue against investor funded amounts
+    '''
+    state_df = df[['loan_amount', 'funded_amount_inv', 'total_payment', 'out_prncp', 'last_payment_amount']].copy() # Creates copy of dataframe with needed columns
+    # Initialise lists for plotting later
+    recover_against_loan = [0] * 7
+    recover_against_inv = [0] * 7
+    recover_against_loan[0] = state_df['total_payment'].sum() / state_df['loan_amount'].sum()
+    recover_against_inv[0] = state_df['total_payment'].sum() / state_df['funded_amount_inv'].sum()
+    # Run for range where number is months in the future
+    for i in range(6):
+        state_df['out_prncp'] = state_df['out_prncp'] - state_df['last_payment_amount'] # Take away payment from left owed
+        title = f'total payment +{i+1} mths' # Initialise title name variable
+        state_df[title] = state_df['total_payment'] + state_df['last_payment_amount'] # New total payments is old total plus payment
+        state_df[title] = state_df[title] + state_df['out_prncp'].map(lambda x: x if x < 0 else 0) # Takes away overpayment (If out_prncp is negative then overpaid)
+        state_df['out_prncp'] = state_df['out_prncp'].map(lambda x: 0 if x < 0 else x) # Sets owed money back to 0 (if negative it's been corrected in the last step)
+        state_df['total_payment'] = state_df[title] # updates total payment
+        recover_against_loan[i+1] = state_df[title].sum() / state_df['loan_amount'].sum() # saves percentage return for loan to list
+        recover_against_inv[i+1] = state_df[title].sum() / state_df['funded_amount_inv'].sum() # saves percentage return for investor to list
+    print(state_df)
+    # Creates Graph of return percentage
+    months = [0, 1, 2, 3, 4, 5, 6] # initialise months
+    plt.plot(months, recover_against_loan, color='blue')
+    plt.plot(months, recover_against_inv, color='red')
+    plt.xlabel('Months into Future')
+    plt.ylabel('Percentage Recovered')
+    plt.legend(['Recovered Against Loan', 'Recovered Against Investor'])
+    plt.show()
+    # Prints return percentages after 6 months
+    print(f'Return Percentage at 6 months from Loan Amount: £{recover_against_loan}')
+    print(f'Return Percentage at 6 months from Invested Amount: £{recover_against_inv}')
+
+def calculate_loss(df):
+    '''
+    This function shows the current status of charged off loans
+
+    Args:
+        df (dataframe): Dataframe to be analysed
+    
+    Outputs:
+        Number of Charged Off Loans: Total number of current charged off loans
+        Percentage that is Charged off Loans: Percentage of total loans that have been charged off
+        Total Payment of Charged Off Loans: Total Payment that has already been paid by charged off loans
+    '''
+    number_of_charged_off = df.loc[df['loan_status'] == 'Charged Off', 'loan_status'].count() #Counts series containing only charged off
+    percent_of_charged_off = number_of_charged_off / len(df['loan_status']) #Uses previous value over total values
+    total_payment_charged_off = round(df.loc[df['loan_status'] == 'Charged Off']['total_payment'].sum(), 2) #selects values of total payment where loan status is charged off
+    # Prints outputs
+    print(f'Number of Charged Off Loans: {number_of_charged_off}')
+    print(f'Percentage that is Charged Off Loans: {round(percent_of_charged_off * 100, 2)}%')
+    print(f'Total Payment of Charged Off Loans: £{total_payment_charged_off}')
+
+def calculate_projected_loss(df):
+    '''
+    This function shows the current loss by Charged Off Loans by total that would have been taken from Loan
+
+    Args:
+        df (dataframe): Dataframe to be analysed
+    
+    Outputs:
+        Total Revenue Lost: Total Revenue Lost from potential total loan with interest rate
+        Percentage of Revenue Lost: Percentage of Revenue Lost compared with Total Potential Revenue
+    '''
+    df['term_years'] = df['term'].map(lambda x: 5 if x == '60 months' else 3) # Creates new column converting term into numeric years
+    df['loan_w_interest'] = round(df['loan_amount'] * (1 + (df['int_rate'] / 100)) ** df['term_years'], 2) # Creates new column that shows total loan
+    total_chargedoff_loans = df.loc[df['loan_status'] == 'Charged Off']['loan_w_interest'].sum() # Sums the total loan value for all charged off loans
+    total_payment_chargeoff = round(df.loc[df['loan_status'] == 'Charged Off']['total_payment'].sum(), 2) # Sums the total payment for all charged off loans
+    lost_revenue = round(total_chargedoff_loans - total_payment_chargeoff, 2) # THe lost revenue from unpaid loans
+    total_revenue = df['loan_w_interest'].sum() # total potential revenue
+    # Prints Outputs
+    print(f'Total Revenue Lost £{lost_revenue}')
+    print(f'Pecentage of Revenue Lost: {round((lost_revenue / total_revenue * 100), 2)}%')
+
+def possible_loss(df):
+    '''
+    This function shows the potential possible loss if late payments default or charged off
+
+    Args:
+        df (dataframe): Dataframe to be analysed
+    
+    Outputs:
+        Total Number of Late Status: Total number of late loans
+        Percentage of Members in Late Status: Percentage of late loans against total loans
+        Total Lost if Late Loans Charged Off: Total Loss of LAte Loans if no more payments
+        TOtal Lost for Late, Default and Charged Off: Total Loss of Late Loans, Default and Charged Off
+        Percentage Lost of Total Revenue: Total Lost as a percentage of Total Revenue
+    '''
+    df['term_years'] = df['term'].map(lambda x: 5 if x == '60 months' else 3) # Creates new column converting term into numeric years
+    df['loan_w_interest'] = round(df['loan_amount'] * (1 + (df['int_rate'] / 100)) ** df['term_years'], 2) # Creates new column that shows total loan
+    total_late_loans = df.loc[df['loan_status'].isin(['Late (31-120 days)', 'Late (16-30 days)'])]['loan_status'].count() # Counts the number of Late Loans
+    late_loans_value = df.loc[df['loan_status'].isin(['Late (31-120 days)', 'Late (16-30 days)'])]['loan_w_interest'].sum() # Sums the total loan value for all late loans
+    late_loans_paid = df.loc[df['loan_status'].isin(['Late (31-120 days)', 'Late (16-30 days)'])]['total_payment'].sum() # Sums the total payment for all late loans
+    late_loans_loss = round(late_loans_value - late_loans_paid, 2) # The potential loss from all late loans
+    total_lost_loan = df.loc[df['loan_status'].isin(['Late (31-120 days)', 'Late (16-30 days)', 'Default', 'Charged Off'])]['loan_w_interest'].sum() # Sums the total loan value for late, default and charged off loans
+    total_lost_paid = df.loc[df['loan_status'].isin(['Late (31-120 days)', 'Late (16-30 days)', 'Default', 'Charged Off'])]['total_payment'].sum() # Sums the total payment for all late, default and charged off loans
+    total_lost_value = round(total_lost_loan - total_lost_paid, 2) # The potential loss from all late, default and charged off loans
+    # Prints Outputs
+    print(f'Total Number of Late Status: {total_late_loans}')
+    print(f'Percentage of Members in Late Status: {round(total_late_loans / (df["loan_status"]).count() * 100, 2)}%')
+    print(f'Total Lost if Late Loans Charged Off: £{late_loans_loss}')
+    print(f'Total Lost for Late, Default and Charged Off: £{total_lost_value}')
+    print(f'Percentage Lost of Total Revenue: {round(total_lost_value / df["loan_w_interest"].sum() * 100, 2)}%')
+    
+def loss_indicators(df):
+    '''
+    This function gives a correlation matrix to determine what effect each variable has on loan_Status
+
+    Args:
+        df (dataframe): Dataframe to be analysed
+    
+    Outputs
+        Correlation Matrix: Correlation matrix where the top row is loan_status
+    '''
+    # list all potential correlation columns to loan_status
+    columns = ['loan_status', 'int_rate', 'grade', 'employment_length', 'annual_inc', 'verification_status', 'purpose', 'dti', 'delinq_2yrs', 'inq_last_6mths', 'mths_since_last_delinq', 'open_accounts', 'total_accounts', 'mths_since_last_major_derog', 'policy_code', 'application_type']
+    loss_df = df[columns].copy() # Create new dataframe
+    # Create dictionary of loan_status transformation ordered from Worst Result to Best (9 is placeholder)
+    loan_status_dict = {
+                        'Charged Off' : 0,
+                        'Default' : 1,
+                        'Late (31-120 days)' : 3,
+                        'Late (16-30 days)' : 2,    
+                        'In Grace Period' : 9,
+                        'Does not meet the credit policy. Status:Charged Off' : 9,
+                        'Does not meet the credit policy. Status:Fully Paid' : 9,
+                        'Current' : 9,                                                                                                                                                                      
+                        'Fully Paid' : 4                                               
+                    }
+    loss_df.replace({'loan_status' : loan_status_dict}, inplace=True) # Use dictionary to convert loan_status to numerical
+    # Converts all other string columns to numerical
+    for col in columns:
+        if type(loss_df[col][0]) == str:
+            code, uniques = pd.factorize(loss_df[col], sort=True) # Converts the categorical data to numeric
+            loss_df[col] = code # Replaces dataframe columns with new numerical values
+    # Keep the relevant rows (Late payments, defaults, charged off and fully paid)
+    loss_df = loss_df.loc[df['loan_status'].isin(['Late (31-120 days)', 'Late (16-30 days)', 'Charged Off', 'Default', 'Fully Paid'])]
+    # Plot correlation matrix
+    plt.matshow(loss_df.corr())
+    plt.show()  
+
 def initialise():
     '''
     This function creates, formats, transforms and sets up for plotting
 
     Returns:
+        (dataframe): Raw dataframe before any transformations
         (dataframe): Transformed dataframe that can be plotted
     '''
     loan_payments_file = 'loan_payments.csv' # from created .csv
     transformed_df = transform_data(loan_payments_file) # turns csv into dataframe
     loan_df = transform_dataframe(transformed_df) # transforms csv
-    return Plotter(loan_df.df) # returns plottable dataframe
+    return transformed_df, Plotter(loan_df.df) # returns plottable dataframe
 
 if __name__ == '__main__':
-    plot_df = initialise()
-    plot_df.corr_matrix()
+    df, plot_df = initialise()
+    loss_indicators(df)
 
