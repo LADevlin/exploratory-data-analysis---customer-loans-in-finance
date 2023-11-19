@@ -600,8 +600,8 @@ def sixmnths_state(df):
     plt.legend(['Recovered Against Loan', 'Recovered Against Investor'])
     plt.show()
     # Prints return percentages after 6 months
-    print(f'Return Percentage at 6 months from Loan Amount: £{recover_against_loan}')
-    print(f'Return Percentage at 6 months from Invested Amount: £{recover_against_inv}')
+    print(f'Return Percentage at 6 months from Loan Amount: {round(recover_against_loan[6] * 100, 2)}%')
+    print(f'Return Percentage at 6 months from Invested Amount: {round(recover_against_inv[6] * 100, 2)}%')
 
 def calculate_loss(df):
     '''
@@ -726,5 +726,4 @@ def initialise():
 
 if __name__ == '__main__':
     df, plot_df = initialise()
-    loss_indicators(df)
-
+    sixmnths_state(df)
