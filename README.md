@@ -1,5 +1,16 @@
 # Exploratory Data Analysis - Customer Loans in Finance
 
+---
+
+## Contents
+
+- Introduction
+- Findings
+- Usage
+- Dataset Schema
+
+---
+
 ## Introduction
 
 This project is a practice study on a real world example:
@@ -10,33 +21,195 @@ This project is a practice study on a real world example:
 - By conducting exploratory data analysis on the loan data, I aim to gain a deeper understanding of the risk and return associated with the business' loans.
 - Ultimately, my goal is to improve the performance and profitability of the loan portfolio.
 
+---
+
+## Findings
+
+
+
+
+
+---
+
 ## Usage
 
-### create_sql_class
+### Class RDSDatabaseConnector
 
-Creates a class to connect to the RDS with load_credentials (below) output as an argument
+Represents an Amazon RDS Connection
 
-### load_credentials
-
-Converts the YAML file into a dictionary, intended for use to gather credentials to connect with RDS
-
-### load_csv
-
-Converts the csv file into a pandas dataframe, the csv file will be generated from the RDSDatabaseConnector Class
-
-### .initialise_sql
+#### ***.initialise_sql***
 
 Converts the class arguments into a usable URL, creates an sql engine from this url
 
-### .create_dataframe
+#### ***.create_dataframe***
 
 Converts the gathered SQL file into a pandas dataframe
 
-### .create_csv
+#### ***.create_csv***
 
 Creates a .csv file from the pandas dataframe
 
-## Full loans dataset schema
+---
+
+### Class DataFrame
+
+Represents the Data Transform from csv to Data Frame
+
+---
+
+### Class DataFrameInfo
+
+Represents the information and processes for the DataFrame
+
+#### ***.info***
+
+Shows information on the dataframe
+
+#### ***.median_col***
+
+Gives a median of a given column
+
+#### ***.std_col***
+
+Gives a standard deviation of a given column
+
+#### ***.mean_col***
+
+Gives a mean of a given column
+
+#### ***.mode_col***
+
+Gives a mode of a given column
+
+#### ***.value_counts***
+
+Gives the counts of each unique value of a given column
+
+#### ***.nunique***
+
+Gives the number of unique values of a given column
+
+---
+
+### Class DataFrameTransform(DataFrameInfo)
+
+Represents transformations on the dataframe
+
+#### ***.drop_cols***
+
+drops columns provided
+
+#### ***.median_impute***
+
+imputes the median value of the column into null values
+
+#### ***.mode_impute***
+
+Imputes the mode value of the column into null values
+
+#### ***.ffill_impute***
+
+Imputes via forward fill of the column into null values
+
+#### ***.correct_skew***
+
+Reduces the skew via log transformation
+
+#### ***.remove_outliers***
+
+Removes outliers from the dataframe
+
+---
+
+### Class Plotter(DataFrameTransform)
+
+Represents plotting information
+
+#### ***.plot_null***
+
+Creates a plot of null values within the dataframe
+
+#### ***.plot_dist_col***
+
+Creates a histogram distribution plot for a given column
+
+#### ***.plot_dist***
+
+Creates a histogram distribution plot for all numeric columns in dataframe
+
+#### ***.plot_qq_col***
+
+Creates a qq plot for a given column
+
+#### ***.plot_qq***
+
+Creates a qq plot for all numeric columns in dataframe
+
+#### ***.plot_box_col***
+
+Creates a box plot for a given column
+
+#### ***.plot_box***
+
+Creates a box plot for all numeric columns in dataframe
+
+#### ***.corr_matrix***
+
+Creates a correlation matrix for all numeric columns in dataframe
+
+---
+
+### .create_sql_class
+
+Creates a class to connect to the RDS with load_credentials (below) output as an argument
+
+### .load_credentials
+
+Converts the YAML file into a dictionary, intended for use to gather credentials to connect with RDS
+
+### .load_csv
+
+Converts the csv file into a pandas dataframe, the csv file will be generated from the RDSDatabaseConnector Class
+
+### .transfor_data
+
+Converts a dataframe and converts column type
+
+### .transform_dataframe
+
+Performs all desired dataframe transformations
+
+### .current_state
+
+Prints an analysis of the current state of loans
+
+### .sixmnths_state
+
+Prints a predicted analysis for 6 months in the future
+
+### .calculate_loss
+
+Shows the current status of charged off loans
+
+### .calculate_projected_loss
+
+Shows the current loss by Charged Off Loans by total that would have been taken from Loan
+
+### .possible_loss
+
+Shows the potential possible loss if late payments default or charged off
+
+### .loss_indicators
+
+Gives a correlation matrix to determine what effect each variable has on loan_status
+
+### .initialise
+
+Creates, formats, transforms and sets up for plotting (MUST BE RAN FIRST)
+
+---
+
+## Dataset Schema
 
 - **id**: unique id of the loan
 - **member_id**: id of the member to took out the loan
