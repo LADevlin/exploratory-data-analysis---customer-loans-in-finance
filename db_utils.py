@@ -236,7 +236,7 @@ class DataFrameTransform(DataFrameInfo):
     
     def median_impute(self, column):
         '''
-        This is a function to impute the media value of the column into null values
+        This is a function to impute the median value of the column into null values
 
         Args:
             column (list): list of numerical columns to impute
